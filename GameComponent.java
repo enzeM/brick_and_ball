@@ -55,7 +55,7 @@ class GameComponent {
 
 	public Image getImage() {
 		try {
-			//1 load image 2 scalled image
+			//load and scale image from src
 			Image image = ImageIO.read(new File(getPath()));
 			if(this.width > 0 && this.height > 0) {
 				this.img = image.getScaledInstance(this.width, this.height, Image.SCALE_DEFAULT);
@@ -79,7 +79,7 @@ class GameComponent {
 	public void setWidth(int width) {
 		this.width = width;
 	}
-
+	
 	public void setHeight(int height) {
 		this.height = height;
 	}

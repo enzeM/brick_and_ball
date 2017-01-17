@@ -10,60 +10,99 @@ import java.awt.event.*;
 class GameService {
 	
 	private GameFrame gFrame = null;
-	private int frameW;
-	private int frameH;
+	private int frameW = -1;
+	private int frameH = -1;
 
 	//x, y, width, height
 	private Ball ball = new Ball("img/ball.gif", 150, 200, 20, 20);
-	private Stick stick = new Stick("img/stick_norm.png", 150-20, 350, 70, 20);
-	private Brick[][] bricks = generateBricks();
-
+	private Stick stick = new Stick("img/stick_norm.png", 150, 380, 70, 20);
+	private Brick[][] bricks = null;
 	
 	public GameService(GameFrame gFrame) {
 		this.gFrame = gFrame;
 		this.frameW = gFrame.getWidth();
 		this.frameH = gFrame.getHeight();
+		this.bricks = generateBricks(5, 3);
 	}
 
-	public Brick[][] generateBricks() {
-		Brick[][] bricks = new Brick[1][1];
+	//auto generate game bricks
+	public Brick[][] generateBricks(int row, int column) {
+		Brick[][] bricks = new Brick[row][column];
 		Random r = new Random();
 		for(int x = 0; x < bricks.length; x ++) {
 			for(int y=0; y< bricks[x].length; y++) {
 				int brickSize = 300/bricks.length;
 				int brickPos = brickSize;
-				Brick brick = new Brick("img/mars.png", x * brickPos, y * brickPos, brickSize, brickSize);	
-				//each row have about 8 items
+				Brick brick = new Brick("img/mars.png" , x * brickPos, y * brickPos, brickSize, brickSize);	
+				//each row have about 9 items
 				double rand = (int)(Math.random() * 10);
-				boolean visible = rand < 8 ? true : false;
+				boolean visible = rand < 7 ? true : false;
 				brick.setVisible(visible);
+				//set magic
+				if(brick.isVisible() && rand > 5) {
+					brick.setMagic(Brick.LONG_MAGIC);
+				} else if(brick.isVisible() && rand <= 5) {
+					brick.setMagic(Brick.SHORT_MAGIC);
+				}
 				bricks[x][y] = brick;
 			}
 		}
 		return bricks;
 	}
-	
-	//set stick position through keyboard
-	public void setStickPos(KeyEvent ke) {
-		if(ke.getKeyCode() == KeyEvent.VK_W) {
-			if(stick.getY() - stick.getSpeed() > 0) {
-				stick.setY(stick.getY() - stick.getSpeed());
-			}
-		} else if(ke.getKeyCode() == KeyEvent.VK_S) {
-			if(stick.getY() + stick.getSpeed() < gFrame.getHeight() - stick.getHeight()) {
-				stick.setY(stick.getY() + stick.getSpeed());
-			}
-		} else if(ke.getKeyCode() == KeyEvent.VK_A) {
-			if(stick.getX() - stick.getSpeed() > 0) {
-				stick.setX(stick.getX() - stick.getSpeed());
-			}
-		} else if(ke.getKeyCode() == KeyEvent.VK_D) {
-			if(stick.getX() + stick.getSpeed() < gFrame.getWidth() - stick.getWidth()) {
-				stick.setX(stick.getX() + stick.getSpeed());
+
+	//set game move position for magic item in the game
+	public void setMagicPos() {
+		for(int x=0; x<bricks.length; x++) {
+			for(int y=0; y<bricks[x].length; y++) {
+				GameMagic magic = bricks[x][y].getMagic();
+				if(magic != null && 
+						bricks[x][y].isVisible() == false && 
+						magic.getY() < gFrame.getHeight()) {
+					magic.setY(magic.getY() + magic.getSpeed());
+					if(isHitItem(magic)) {
+						magic.invokeMagic(this.stick);
+					}
+				}
 			}
 		}
 	}
 
+	//game control
+	public void setStickPos(KeyEvent ke) {
+		if(ke.getKeyCode() == KeyEvent.VK_W) {
+			//can not move up more than one third of the screen
+			if(stick.getY() - stick.getSpeed() > gFrame.getWidth()/1.5) {
+				stick.setY(stick.getY() - stick.getSpeed());
+			}
+		} else if(ke.getKeyCode() == KeyEvent.VK_S) {
+			if(stick.getY() + stick.getSpeed() < gFrame.getHeight() - 1) {
+				stick.setY(stick.getY() + stick.getSpeed());
+			} else {
+				stick.setY(gFrame.getHeight() - stick.getHeight());
+			}
+		} else if(ke.getKeyCode() == KeyEvent.VK_A) {
+			if(stick.getX() - stick.getSpeed() > 0) {
+				stick.setX(stick.getX() - stick.getSpeed());
+			} else {
+				stick.setX(0);
+			}
+		} else if(ke.getKeyCode() == KeyEvent.VK_D) {
+			if(stick.getX() + stick.getSpeed() < gFrame.getWidth() - stick.getWidth()) {
+				stick.setX(stick.getX() + stick.getSpeed());
+			} else {
+				stick.setX(gFrame.getWidth() - stick.getWidth());
+			}
+		//restart game
+		} else if(ke.getKeyCode() == KeyEvent.VK_R) {
+			try {
+				gFrame.init();
+			} catch(IOException ioe) {
+				ioe.printStackTrace();
+			}
+		}
+	}
+
+	//ball movement in the game
 	public void setBallPos() {
 		int absSpeedX = Math.abs(ball.getSpeedX());
 		int absSpeedY = Math.abs(ball.getSpeedY());
@@ -72,26 +111,17 @@ class GameService {
 			ball.setSpeedX(ball.getSpeedX() * -1);
 		}
 		if(ball.getX() + absSpeedX > gFrame.getWidth() - ball.getWidth()) {
-			//ball.setX(frameW - ball.getWidth() * 2); //I think should be / 2
 			ball.setSpeedX( - ball.getSpeedX());
 		}
 		if(ball.getY() - absSpeedY < 0) {
 			ball.setSpeedY( - ball.getSpeedY());
 		}
-		/*
-		if(ball.getY() + absSpeedY >= stick.getX() && isHitStick(stick)) {
-			ball.setY(frameH - ball.getHeight() * 2);
+		if(isHitItem(ball)) {
 			ball.setSpeedY( - ball.getSpeedY());
 		}
-		*/
-		if(isHitStick(stick)) {
-			ball.setSpeedY( - ball.getSpeedY());
-		}
-
 		if(ball.getY() + ball.getHeight() > gFrame.getHeight()) {
 			ball.setStop(true);
 		}
-		
 		//hit brick collision test
 		for(int x=0; x<bricks.length; x++) {
 			for(int y=0; y<bricks[x].length; y++) {
@@ -103,16 +133,15 @@ class GameService {
 		ball.setX(ball.getX() + ball.getSpeedX());
 		ball.setY(ball.getY() + ball.getSpeedY());
 	}
-	
-	//colliston test between ball and brick
-	public boolean isHitStick(Stick stick) {
-		if(ball.getY() + ball.getHeight() >= stick.getY() &&
-				ball.getY() < stick.getY() + stick.getHeight() &&
-				ball.getX() + ball.getWidth() > stick.getX() && 
-				ball.getX() < stick.getX() + stick.getWidth()) {
+
+	//colliston test between ball and game item
+	public boolean isHitItem(GameComponent item) {
+		if(item.getY() + item.getHeight() >= stick.getY() &&
+				item.getY() < stick.getY() + stick.getHeight()/2 &&
+				item.getX() + item.getWidth() > stick.getX() &&
+				item.getX() < stick.getX() + stick.getWidth()) {
 			return true;
 		}
-		//ball.setStop(true);
 		return false;
 	}
 
@@ -130,19 +159,17 @@ class GameService {
 				Math.pow(ballX - brickX, 2) + Math.pow(ballY - brickY, 2));
 		double hitDist = ball.getImage().getWidth(null)/2 + brick.getImage().getWidth(null)/2;
 		if(distance < hitDist) {
-			//System.out.println("hitted brick");
 			brick.setVisible(false);
 			return true;
 		}
 		return false;
 	}
 
-
+	//detect winning of the game
 	public boolean isWon() {
 		for(int x=0; x<bricks.length; x++) {
 			for(int y=0; y<bricks[x].length; y++) {
 				if(bricks[x][y].isVisible()) {
-					//System.out.println("not win yet");
 					return false;
 				}
 			}
@@ -150,25 +177,27 @@ class GameService {
 		return true;
 	}
 
-	//draw relevant on game panel
+	//draw relevant items on game panel
 	public void draw(Graphics g) {
 		if(isWon()) {
 			try {
 				Image image = ImageIO.read(new File("img/winner.png"));
-				int imageW = image.getWidth(null);
-				int imageH = image.getHeight(null);
-				g.drawImage(image, (gFrame.getWidth() - imageW)/2, 
-						(gFrame.getHeight() - imageH)/2, null);
+				Image restartImg = ImageIO.read(new File("img/restart.png"));
+				int imageX = (gFrame.getWidth() - image.getWidth(null))/2;
+				int imageY = (gFrame.getHeight() - image.getHeight(null))/2;
+				g.drawImage(image, imageX, imageY, null); 
+				g.drawImage(restartImg, imageX - 20, imageY + 50, null);
 			} catch(IOException ioe) {
 				ioe.printStackTrace();
 			}
 		} else if(ball.isStop()) {
 			try {
 				Image image = ImageIO.read(new File("img/loser.png"));
-				int imageW = image.getWidth(null);
-				int imageH = image.getHeight(null);
-				g.drawImage(image, (gFrame.getWidth() - imageW)/2, 
-						(gFrame.getHeight() - imageH)/2, null);
+				Image restartImg = ImageIO.read(new File("img/restart.png"));
+				int imageX = (gFrame.getWidth() - image.getWidth(null))/2;
+				int imageY = (gFrame.getHeight() - image.getHeight(null))/2;
+				g.drawImage(image, imageX, imageY, null); 
+				g.drawImage(restartImg, imageX - 20, imageY + 50, null);
 			} catch(IOException ioe) {
 				ioe.printStackTrace();
 			}
@@ -181,9 +210,12 @@ class GameService {
 			//print bricks
 			for(int x=0; x<bricks.length; x++) {
 				for(int y=0; y<bricks[x].length; y++) {
+					GameComponent magic = bricks[x][y].getMagic();
 					if(bricks[x][y].isVisible()) {
 						Brick brick = bricks[x][y];
 						g.drawImage(brick.getImage(), brick.getX(), brick.getY(), null);
+					} else if (bricks[x][y].isVisible() == false && magic != null) {
+						g.drawImage(magic.getImage(), magic.getX(), magic.getY(), null);	
 					}
 				}
 			}
@@ -192,5 +224,6 @@ class GameService {
 
 	public void run() {
 		setBallPos();
+		setMagicPos();
 	}
 }

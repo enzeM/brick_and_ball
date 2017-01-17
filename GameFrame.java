@@ -10,7 +10,7 @@ import javax.swing.Timer;
 
 class GameFrame extends GameComponent {
 	private GamePanel gamePanel = null; 
-	private GameService service = new GameService(this);
+	private GameService service;
 	Timer timer = null;
 
 	public GameFrame(String path, int width, int height) throws IOException {
@@ -31,7 +31,8 @@ class GameFrame extends GameComponent {
 		JFrame frame = new JFrame();
 		frame.setLayout(new FlowLayout());
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
+		//init service
+		service = new GameService(this);
 		ActionListener task = new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				service.run();
@@ -46,7 +47,6 @@ class GameFrame extends GameComponent {
 			timer = new Timer(100, task);
 			timer.start();
 		}
-
 		KeyAdapter keyProcessor = new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent key) {

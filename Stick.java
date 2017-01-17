@@ -11,8 +11,10 @@ class Stick extends GameComponent {
 	private double size = -1;
 	private Image sitckImg = this.getImage();
 	private int speed = 20;
+	private int initWidth = -1;
 	public Stick(String path, int x, int y, int width, int height) {
 		super(path, x, y, width, height);
+		initWidth = width;
 	}
 
 	public void setSize(int size) {
@@ -25,5 +27,9 @@ class Stick extends GameComponent {
 
 	public int getSpeed() {
 		return this.speed;
+	}
+
+	public int getInitWidth() {
+		return this.initWidth;
 	}
 }
