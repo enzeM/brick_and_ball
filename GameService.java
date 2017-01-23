@@ -22,7 +22,8 @@ class GameService {
 		this.gFrame = gFrame;
 		this.frameW = gFrame.getWidth();
 		this.frameH = gFrame.getHeight();
-		this.bricks = generateBricks(5, 3);
+		//this.bricks = generateBricks(5, 3);
+		this.bricks = new MapService("map/map1.txt").generateBricks();
 	}
 
 	//auto generate game bricks
@@ -33,7 +34,8 @@ class GameService {
 			for(int y=0; y< bricks[x].length; y++) {
 				int brickSize = 300/bricks.length;
 				int brickPos = brickSize;
-				Brick brick = new Brick("img/mars.png" , x * brickPos, y * brickPos, brickSize, brickSize);	
+				Brick brick = new Brick("img/mars.png" , 
+						x * brickPos, y * brickPos, brickSize, brickSize);	
 				//each row have about 9 items
 				double rand = (int)(Math.random() * 10);
 				boolean visible = rand < 7 ? true : false;

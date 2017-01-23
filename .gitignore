@@ -1,0 +1,4 @@
+# ignore Java class files
+*.class
+# ignore all hidden file
+*.
